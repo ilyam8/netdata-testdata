@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'prometheus/profiles/**'
+      - '.gitattributes'
       - '.github/workflows/prometheus-evidence.yml'
 
 permissions:
@@ -19,12 +20,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify LF storage contract
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          mapfile -d '' -t prometheus_paths < <(git ls-files -z -- prometheus)
+          for path in .gitattributes "${prometheus_paths[@]}"; do
+            attribute=$(git check-attr eol -- "${path}")
+            if [[ "${attribute}" != "${path}: eol: lf" ]]; then
+              echo "Prometheus evidence must check out with LF line endings: ${attribute}" >&2
+              exit 1
+            fi
+          done
+
       - name: Reject changes to existing evidence
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          set -euo pipefail
+          set -euxo pipefail
 
           if git diff --quiet --diff-filter=MDRT "${BASE_SHA}"...HEAD -- prometheus/profiles; then
             :
