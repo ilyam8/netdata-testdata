@@ -5,11 +5,11 @@ stock Prometheus profiles in `netdata/netdata`.
 
 ## Data boundary
 
-- `profiles/<profile>/fixtures/` contains sanitized, source-derived synthetic
+- `profiles/<profile-revision>/fixtures/` contains sanitized, source-derived synthetic
   Prometheus exposition.
-- `profiles/<profile>/SOURCE-INVENTORY.tsv` contains the generated
+- `profiles/<profile-revision>/SOURCE-INVENTORY.tsv` contains the generated
   source-family-to-profile reconciliation ledger.
-- `profiles/<profile>/manifest.yaml` records the size and SHA-256 digest of
+- `profiles/<profile-revision>/manifest.yaml` records the size and SHA-256 digest of
   every evidence file.
 
 These fixtures are structural unions assembled from public exporter source and

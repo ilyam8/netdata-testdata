@@ -19,18 +19,25 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          sparse-checkout: |
+            .gitattributes
+            .github/workflows/prometheus-evidence.yml
+            prometheus
+          sparse-checkout-cone-mode: false
 
       - name: Verify LF storage contract
         shell: bash
         run: |
           set -euxo pipefail
 
-          mapfile -d '' -t attributes < <(
-            {
-              printf '%s\0' .gitattributes
-              git ls-files -z -- prometheus
-            } | git check-attr --stdin -z eol
-          )
+          attributes_file=$(mktemp)
+          trap 'rm -f "${attributes_file}"' EXIT
+          {
+            printf '%s\0' .gitattributes
+            git ls-files -z -- prometheus
+          } | git check-attr --stdin -z eol > "${attributes_file}"
+          mapfile -d '' -t attributes < "${attributes_file}"
+          test "${#attributes[@]}" -gt 0
           test "$((${#attributes[@]} % 3))" -eq 0
           for ((index = 0; index < ${#attributes[@]}; index += 3)); do
             path=${attributes[index]}
