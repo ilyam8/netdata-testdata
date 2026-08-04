@@ -25,6 +25,20 @@ directory in `netdata/netdata`.
 
 ## Consumer contract
 
-Consumers must pin an exact `netdata/testdata` commit and verify the manifest
-digests before using these files as profile proof. CI must not validate against
-the mutable default branch implicitly.
+Consumers use the latest `netdata/testdata` `master` and verify the referenced
+manifest plus every file size and SHA-256 digest it declares. The default branch
+is the transport; immutable paths and content digests are the reproducibility
+boundary, so consumers do not need a repository commit lock.
+
+## Producer contract
+
+- A merged profile-evidence directory is immutable. Do not modify or delete a
+  manifest, source inventory, or fixture referenced by a merged Netdata commit.
+- Changed evidence must use a new `profiles/<profile-revision>/` directory with
+  a new manifest. The current unversioned profile directories are their initial
+  revisions.
+- The Prometheus evidence workflow rejects edits or deletions in existing
+  profile-revision directories and rejects new files added below an existing
+  directory.
+- Land the testdata change before the Netdata change that references its new
+  manifest.
