@@ -1,3 +1,4 @@
+.gitattributes text eol=lf
 /prometheus/README.md text eol=lf
 /prometheus/ATTRIBUTION.md text eol=lf
 /prometheus/profiles/**/manifest.yaml text eol=lf
