@@ -2,14 +2,14 @@
 name: Prometheus Evidence Immutability
 
 on:
-  pull_request:
-    paths:
-      - 'prometheus/profiles/**'
-      - '.gitattributes'
-      - '.github/workflows/prometheus-evidence.yml'
+  pull_request: null
 
 permissions:
   contents: read
+
+concurrency:
+  group: prometheus-evidence-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
 
 jobs:
   immutable-paths:
@@ -25,11 +25,19 @@ jobs:
         run: |
           set -euxo pipefail
 
-          mapfile -d '' -t prometheus_paths < <(git ls-files -z -- prometheus)
-          for path in .gitattributes "${prometheus_paths[@]}"; do
-            attribute=$(git check-attr eol -- "${path}")
-            if [[ "${attribute}" != "${path}: eol: lf" ]]; then
-              echo "Prometheus evidence must check out with LF line endings: ${attribute}" >&2
+          mapfile -d '' -t attributes < <(
+            {
+              printf '%s\0' .gitattributes
+              git ls-files -z -- prometheus
+            } | git check-attr --stdin -z eol
+          )
+          test "$((${#attributes[@]} % 3))" -eq 0
+          for ((index = 0; index < ${#attributes[@]}; index += 3)); do
+            path=${attributes[index]}
+            attribute=${attributes[index + 1]}
+            value=${attributes[index + 2]}
+            if [[ "${attribute}" != eol || "${value}" != lf ]]; then
+              echo "Prometheus evidence must check out with LF line endings: ${path}: ${attribute}: ${value}" >&2
               exit 1
             fi
           done
