@@ -1,0 +1,321 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+version: v1
+profile: fastapi
+upstreams:
+  fastapi_instrumentator:
+    repository: trallnag/prometheus-fastapi-instrumentator
+    commit: 2f841527277a21ac9ea622a9f923a5f9078234c4
+  prometheus_client_python:
+    repository: prometheus/client_python
+    commit: f417f6ea8f058165a1934e368fed245e91aafc14
+evidence:
+  request_population:
+    kind: population
+    upstream: fastapi_instrumentator
+    locations: [src/prometheus_fastapi_instrumentator/metrics.py:779-820]
+    claim: One instrumentation call records one request outcome, both size observations, and both enabled duration observations.
+  component_lifecycle:
+    kind: lifecycle
+    upstream: prometheus_client_python
+    locations: [prometheus_client/metrics.py:330-367, prometheus_client/metrics.py:538-572, prometheus_client/metrics.py:650-703]
+    claim: Counter values, summary count and sum, and histogram bucket, count, and sum accumulate observations.
+  created_registration:
+    kind: registration
+    upstream: prometheus_client_python
+    locations: [prometheus_client/metrics.py:44-60, prometheus_client/metrics.py:360-367, prometheus_client/metrics.py:565-572, prometheus_client/metrics.py:692-703]
+    claim: Counters, summaries, and histograms emit one optional terminal _created sample for each registered child.
+  created_population:
+    kind: population
+    upstream: prometheus_client_python
+    locations: [prometheus_client/metrics.py:360-367, prometheus_client/metrics.py:565-572, prometheus_client/metrics.py:692-703]
+    claim: Each observable counter, summary, or histogram child emits its own _created sample when created samples are enabled.
+  created_lifecycle:
+    kind: lifecycle
+    upstream: prometheus_client_python
+    locations: [prometheus_client/metrics.py:330-367, prometheus_client/metrics.py:538-572, prometheus_client/metrics.py:650-703]
+    claim: Each _created value is captured when its metric child is initialized and emitted unchanged by normal counter increments and summary or histogram observations.
+  created_unit:
+    kind: unit
+    upstream: prometheus_client_python
+    locations: [prometheus_client/metrics.py:330-367, prometheus_client/metrics.py:538-572, prometheus_client/metrics.py:650-703]
+    claim: Each _created sample exposes the time.time registration epoch in Unix seconds.
+  request_units:
+    kind: unit
+    upstream: fastapi_instrumentator
+    locations: [src/prometheus_fastapi_instrumentator/metrics.py:653-688, src/prometheus_fastapi_instrumentator/metrics.py:713-777]
+    claim: Outcome and count components count requests, size sums measure bytes, and duration sums and bucket bounds measure seconds.
+  request_labels:
+    kind: label
+    upstream: fastapi_instrumentator
+    locations: [src/prometheus_fastapi_instrumentator/metrics.py:706-777, src/prometheus_fastapi_instrumentator/metrics.py:786-820]
+    claim: Default request outcomes use method, status, and handler; size summaries use handler; endpoint duration uses method and handler; service duration is global.
+  status_domain:
+    kind: label
+    upstream: fastapi_instrumentator
+    locations: [src/prometheus_fastapi_instrumentator/middleware.py:23-24, src/prometheus_fastapi_instrumentator/middleware.py:178-214]
+    claim: Default middleware replaces the exact HTTP response code with its one-digit status class.
+  count_projection:
+    kind: relationship
+    upstream: fastapi_instrumentator
+    locations: [src/prometheus_fastapi_instrumentator/metrics.py:786-809]
+    claim: Each handled request increments the outcome counter once and observes each size summary once, so each handler-level summary count equals outcomes summed over method and status.
+  request_concurrency_display:
+    kind: display_convention
+    upstream: fastapi_instrumentator
+    locations: [src/prometheus_fastapi_instrumentator/metrics.py:779-820]
+    claim: Summing request duration and taking its per-second increase yields the average number of requests in flight during the interval.
+environment:
+  axes: {}
+  policies: {}
+component_policies:
+  duration_histogram:
+    bucket:
+      wire_role: histogram_bucket
+      lifecycle: {kind: cumulative, evidence: [component_lifecycle]}
+      unit:
+        quantity: count
+        base: one
+        rate: none
+        object: observations
+        aspect: distributed
+        evidence: [request_units]
+    count:
+      wire_role: histogram_count
+      lifecycle: {kind: cumulative, evidence: [component_lifecycle]}
+      unit:
+        quantity: count
+        base: one
+        rate: none
+        object: requests
+        aspect: completed
+        evidence: [request_units]
+    sum:
+      wire_role: histogram_sum
+      lifecycle: {kind: cumulative, evidence: [component_lifecycle]}
+      unit:
+        quantity: duration
+        base: second
+        rate: none
+        object: request_time
+        aspect: elapsed
+        evidence: [request_units]
+label_policies: {}
+signals:
+  request_outcomes:
+    source:
+      generated:
+        registry_groups: [default_http]
+        scope: {registrations: [http_requests_total]}
+    population:
+      id: handled_requests
+      meaning: Requests handled by the instrumented FastAPI application.
+      evidence: [request_population]
+    components:
+      value:
+        wire_role: scalar
+        lifecycle: {kind: cumulative, evidence: [component_lifecycle]}
+        unit:
+          quantity: count
+          base: one
+          rate: none
+          object: requests
+          aspect: completed
+          evidence: [request_units]
+    labels:
+      handler:
+        meaning: Normalized FastAPI route handler.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: operational_population}
+        stability: stable
+        evidence: [request_labels]
+      method:
+        meaning: HTTP request method.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: operational_population}
+        stability: stable
+        evidence: [request_labels]
+      status:
+        meaning: One-digit HTTP response status class.
+        presence: required
+        domain: {kind: closed, values: [1xx, 2xx, 3xx, 4xx, 5xx]}
+        endpoint_cardinality: {kind: closed_domain}
+        stability: stable
+        evidence: [request_labels, status_domain]
+    functional_dependencies: {}
+  request_size:
+    source:
+      generated:
+        registry_groups: [default_http]
+        scope: {registrations: [http_request_size_bytes]}
+    population:
+      id: handled_requests
+      meaning: Requests handled by the instrumented FastAPI application.
+      evidence: [request_population]
+    components:
+      count:
+        wire_role: summary_count
+        lifecycle: {kind: cumulative, evidence: [component_lifecycle]}
+        unit:
+          quantity: count
+          base: one
+          rate: none
+          object: requests
+          aspect: completed
+          evidence: [request_units]
+      sum:
+        wire_role: summary_sum
+        lifecycle: {kind: cumulative, evidence: [component_lifecycle]}
+        unit:
+          quantity: data
+          base: byte
+          rate: none
+          object: http_body
+          aspect: request
+          evidence: [request_units]
+    labels:
+      handler:
+        meaning: Normalized FastAPI route handler.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: operational_population}
+        stability: stable
+        evidence: [request_labels]
+    functional_dependencies: {}
+  response_size:
+    source:
+      generated:
+        registry_groups: [default_http]
+        scope: {registrations: [http_response_size_bytes]}
+    population:
+      id: handled_requests
+      meaning: Requests handled by the instrumented FastAPI application.
+      evidence: [request_population]
+    components:
+      count:
+        wire_role: summary_count
+        lifecycle: {kind: cumulative, evidence: [component_lifecycle]}
+        unit:
+          quantity: count
+          base: one
+          rate: none
+          object: requests
+          aspect: completed
+          evidence: [request_units]
+      sum:
+        wire_role: summary_sum
+        lifecycle: {kind: cumulative, evidence: [component_lifecycle]}
+        unit:
+          quantity: data
+          base: byte
+          rate: none
+          object: http_body
+          aspect: response
+          evidence: [request_units]
+    labels:
+      handler:
+        meaning: Normalized FastAPI route handler.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: operational_population}
+        stability: stable
+        evidence: [request_labels]
+    functional_dependencies: {}
+  endpoint_duration:
+    source:
+      generated:
+        registry_groups: [default_http]
+        scope: {registrations: [http_request_duration_seconds]}
+    population:
+      id: handled_requests
+      meaning: Requests handled by the instrumented FastAPI application.
+      evidence: [request_population]
+    component_policy: duration_histogram
+    labels:
+      handler:
+        meaning: Normalized FastAPI route handler.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: operational_population}
+        stability: stable
+        evidence: [request_labels]
+      method:
+        meaning: HTTP request method.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: operational_population}
+        stability: stable
+        evidence: [request_labels]
+    functional_dependencies: {}
+  service_duration:
+    source:
+      generated:
+        registry_groups: [default_http]
+        scope: {registrations: [http_request_duration_highr_seconds]}
+    population:
+      id: handled_requests
+      meaning: Requests handled by the instrumented FastAPI application.
+      evidence: [request_population]
+    component_policy: duration_histogram
+    labels: {}
+    functional_dependencies: {}
+  registration_timestamps:
+    source:
+      generated:
+        registry_groups: [default_http]
+        scope: {registrations: [python_created_component]}
+    population:
+      id: metric_registrations
+      meaning: Registered metric children emitted by the Python Prometheus client.
+      evidence: [created_population]
+    components:
+      timestamp:
+        wire_role: scalar
+        lifecycle: {kind: constant, evidence: [created_lifecycle]}
+        unit:
+          quantity: timestamp
+          base: unix_second
+          rate: none
+          object: metric_registration
+          aspect: recorded
+          evidence: [created_unit]
+    labels:
+      handler:
+        meaning: Normalized FastAPI route handler when the registered instrument has endpoint identity.
+        presence: optional
+        domain: {kind: open}
+        endpoint_cardinality: {kind: operational_population}
+        stability: stable
+        evidence: [request_labels]
+      method:
+        meaning: HTTP request method when the registered instrument has method identity.
+        presence: optional
+        domain: {kind: open}
+        endpoint_cardinality: {kind: operational_population}
+        stability: stable
+        evidence: [request_labels]
+      status:
+        meaning: HTTP response status class when the registered instrument has outcome identity.
+        presence: optional
+        domain: {kind: closed, values: [1xx, 2xx, 3xx, 4xx, 5xx]}
+        endpoint_cardinality: {kind: closed_domain}
+        stability: stable
+        evidence: [request_labels, status_domain]
+    functional_dependencies: {}
+relationships:
+  request_size_count_by_handler:
+    kind: sum_projection
+    coarse: {signal: request_size, components: [count]}
+    fine: {signal: request_outcomes, components: [value]}
+    group_by: [handler]
+    evidence: [count_projection]
+  response_size_count_by_handler:
+    kind: sum_projection
+    coarse: {signal: response_size, components: [count]}
+    fine: {signal: request_outcomes, components: [value]}
+    group_by: [handler]
+    evidence: [count_projection]
+state_encodings: {}
+source_exclusions: {}

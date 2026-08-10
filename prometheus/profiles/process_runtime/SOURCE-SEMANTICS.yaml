@@ -1,0 +1,332 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+version: v1
+profile: process_runtime
+upstreams:
+  prometheus_client_python:
+    repository: prometheus/client_python
+    commit: f417f6ea8f058165a1934e368fed245e91aafc14
+evidence:
+  process_registration:
+    kind: registration
+    upstream: prometheus_client_python
+    locations: [prometheus_client/process_collector.py:65-93]
+    claim: The process collector registers six scalar process families.
+  process_population:
+    kind: population
+    upstream: prometheus_client_python
+    locations: [prometheus_client/process_collector.py:19-30, prometheus_client/process_collector.py:54-63]
+    claim: Each observation describes the one process selected by the collector PID function.
+  process_lifecycle:
+    kind: lifecycle
+    upstream: prometheus_client_python
+    locations: [prometheus_client/process_collector.py:65-93]
+    claim: CPU time is cumulative; memory, start time, and descriptor values are current observations.
+  process_unit:
+    kind: unit
+    upstream: prometheus_client_python
+    locations: [prometheus_client/process_collector.py:65-93]
+    claim: Memory is emitted in bytes, CPU and start time in seconds, and descriptor values as counts.
+  process_cpu_display:
+    kind: display_convention
+    upstream: prometheus_client_python
+    locations: [prometheus_client/process_collector.py:73-78]
+    claim: The cumulative CPU signal measures process CPU seconds, whose per-second rate is average core consumption.
+  process_fd_display:
+    kind: display_convention
+    upstream: prometheus_client_python
+    locations: [prometheus_client/process_collector.py:80-93]
+    claim: The process families name and describe open and maximum file-descriptor counts.
+  platform_availability:
+    kind: availability
+    upstream: prometheus_client_python
+    locations: [prometheus_client/platform_collector.py:8-24, prometheus_client/platform_collector.py:58]
+    claim: The platform collector registers python_info when enabled and adds JVM metadata only on a JVM runtime.
+  python_registration:
+    kind: registration
+    upstream: prometheus_client_python
+    locations: [prometheus_client/platform_collector.py:15-35]
+    claim: The platform collector registers one gauge-valued python_info information family.
+  python_population:
+    kind: population
+    upstream: prometheus_client_python
+    locations: [prometheus_client/platform_collector.py:15-27]
+    claim: One python_info observation describes the current Python runtime.
+  python_lifecycle:
+    kind: lifecycle
+    upstream: prometheus_client_python
+    locations: [prometheus_client/platform_collector.py:15-27]
+    claim: Platform metadata is captured at collector construction and remains constant for that runtime.
+  python_unit:
+    kind: unit
+    upstream: prometheus_client_python
+    locations: [prometheus_client/platform_collector.py:29-35]
+    claim: The information family uses the conventional unitless value one.
+  python_labels:
+    kind: label
+    upstream: prometheus_client_python
+    locations: [prometheus_client/platform_collector.py:20-55]
+    claim: Python identity and version fields are always labels, while JVM fields exist only on a JVM runtime.
+environment:
+  axes:
+    platform_runtime:
+      kind: enum
+      values: [disabled, cpython, jvm]
+      meaning: Availability and runtime shape of the optional Python platform collector.
+      evidence: [platform_availability]
+  policies:
+    platform_collector_enabled:
+      when:
+        any:
+          - all: [{axis: platform_runtime, op: in, values: [cpython, jvm]}]
+      evidence: [platform_availability]
+    jvm_runtime:
+      when:
+        any:
+          - all: [{axis: platform_runtime, op: eq, value: jvm}]
+      evidence: [platform_availability]
+component_policies: {}
+label_policies: {}
+signals:
+  cpu_time:
+    source:
+      inline:
+        registrations:
+          canonical:
+            family: {exact: process_cpu_seconds_total}
+            prometheus: {type: counter, shape: scalar}
+            evidence: [process_registration]
+    population:
+      id: exporter_process
+      meaning: The process selected by the exporter process collector.
+      evidence: [process_population]
+    components:
+      value:
+        wire_role: scalar
+        lifecycle: {kind: cumulative, evidence: [process_lifecycle]}
+        unit:
+          quantity: duration
+          base: second
+          rate: none
+          object: process_cpu_time
+          aspect: consumed
+          evidence: [process_unit]
+    labels: {}
+    functional_dependencies: {}
+  resident_memory:
+    source:
+      inline:
+        registrations:
+          canonical:
+            family: {exact: process_resident_memory_bytes}
+            prometheus: {type: gauge, shape: scalar}
+            evidence: [process_registration]
+    population:
+      id: exporter_process
+      meaning: The process selected by the exporter process collector.
+      evidence: [process_population]
+    components:
+      value:
+        wire_role: scalar
+        lifecycle: {kind: current, evidence: [process_lifecycle]}
+        unit:
+          quantity: data
+          base: byte
+          rate: none
+          object: resident_memory
+          aspect: occupied
+          evidence: [process_unit]
+    labels: {}
+    functional_dependencies: {}
+  virtual_memory:
+    source:
+      inline:
+        registrations:
+          canonical:
+            family: {exact: process_virtual_memory_bytes}
+            prometheus: {type: gauge, shape: scalar}
+            evidence: [process_registration]
+    population:
+      id: exporter_process
+      meaning: The process selected by the exporter process collector.
+      evidence: [process_population]
+    components:
+      value:
+        wire_role: scalar
+        lifecycle: {kind: current, evidence: [process_lifecycle]}
+        unit:
+          quantity: data
+          base: byte
+          rate: none
+          object: virtual_memory
+          aspect: occupied
+          evidence: [process_unit]
+    labels: {}
+    functional_dependencies: {}
+  process_start_time:
+    source:
+      inline:
+        registrations:
+          canonical:
+            family: {exact: process_start_time_seconds}
+            prometheus: {type: gauge, shape: scalar}
+            evidence: [process_registration]
+    population:
+      id: exporter_process
+      meaning: The process selected by the exporter process collector.
+      evidence: [process_population]
+    components:
+      value:
+        wire_role: scalar
+        lifecycle: {kind: current, evidence: [process_lifecycle]}
+        unit:
+          quantity: timestamp
+          base: unix_second
+          rate: none
+          object: process_start
+          aspect: observed
+          evidence: [process_unit]
+    labels: {}
+    functional_dependencies: {}
+  open_file_descriptors:
+    source:
+      inline:
+        registrations:
+          canonical:
+            family: {exact: process_open_fds}
+            prometheus: {type: gauge, shape: scalar}
+            evidence: [process_registration]
+    population:
+      id: exporter_process
+      meaning: The process selected by the exporter process collector.
+      evidence: [process_population]
+    components:
+      value:
+        wire_role: scalar
+        lifecycle: {kind: current, evidence: [process_lifecycle]}
+        unit:
+          quantity: count
+          base: one
+          rate: none
+          object: file_descriptors
+          aspect: open
+          evidence: [process_unit]
+    labels: {}
+    functional_dependencies: {}
+  file_descriptor_limit:
+    source:
+      inline:
+        registrations:
+          canonical:
+            family: {exact: process_max_fds}
+            prometheus: {type: gauge, shape: scalar}
+            evidence: [process_registration]
+    population:
+      id: exporter_process
+      meaning: The process selected by the exporter process collector.
+      evidence: [process_population]
+    components:
+      value:
+        wire_role: scalar
+        lifecycle: {kind: current, evidence: [process_lifecycle]}
+        unit:
+          quantity: count
+          base: one
+          rate: none
+          object: file_descriptors
+          aspect: limit
+          evidence: [process_unit]
+    labels: {}
+    functional_dependencies: {}
+  python_runtime_info:
+    availability: platform_collector_enabled
+    source:
+      inline:
+        registrations:
+          canonical:
+            family: {exact: python_info}
+            prometheus: {type: gauge, shape: info}
+            evidence: [python_registration]
+    population:
+      id: python_runtime
+      meaning: The Python runtime hosting the exporter.
+      evidence: [python_population]
+    components:
+      value:
+        wire_role: scalar
+        lifecycle: {kind: constant, evidence: [python_lifecycle]}
+        unit:
+          quantity: count
+          base: one
+          rate: none
+          object: python_runtime_metadata
+          aspect: information
+          evidence: [python_unit]
+    labels:
+      implementation:
+        meaning: Python implementation name.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: singleton}
+        stability: restart_stable
+        evidence: [python_labels]
+      major:
+        meaning: Python major version.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: singleton}
+        stability: restart_stable
+        evidence: [python_labels]
+      minor:
+        meaning: Python minor version.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: singleton}
+        stability: restart_stable
+        evidence: [python_labels]
+      patchlevel:
+        meaning: Python patch version.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: singleton}
+        stability: restart_stable
+        evidence: [python_labels]
+      version:
+        meaning: Complete Python version string.
+        presence: required
+        domain: {kind: open}
+        endpoint_cardinality: {kind: singleton}
+        stability: restart_stable
+        evidence: [python_labels]
+      jvm_version:
+        meaning: JVM version hosting the Python runtime.
+        presence: {when: jvm_runtime}
+        domain: {kind: open}
+        endpoint_cardinality: {kind: singleton}
+        stability: restart_stable
+        evidence: [python_labels]
+      jvm_release:
+        meaning: JVM release identifier.
+        presence: {when: jvm_runtime}
+        domain: {kind: open}
+        endpoint_cardinality: {kind: singleton}
+        stability: restart_stable
+        evidence: [python_labels]
+      jvm_vendor:
+        meaning: JVM vendor name.
+        presence: {when: jvm_runtime}
+        domain: {kind: open}
+        endpoint_cardinality: {kind: singleton}
+        stability: restart_stable
+        evidence: [python_labels]
+      jvm_name:
+        meaning: JVM implementation name.
+        presence: {when: jvm_runtime}
+        domain: {kind: open}
+        endpoint_cardinality: {kind: singleton}
+        stability: restart_stable
+        evidence: [python_labels]
+    functional_dependencies: {}
+relationships: {}
+state_encodings: {}
+source_exclusions: {}
