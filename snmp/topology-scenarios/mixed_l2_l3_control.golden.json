@@ -579,7 +579,7 @@
             "src_actor": "mac:02:00:00:00:02:01,02:dd:ce:cc:45:64,02:dd:ce:cc:4a:7d",
             "src_if_index": 1,
             "src_management_ip": "192.0.2.11",
-            "src_port_id": "uplink-a",
+            "src_port_id": "1",
             "src_port_name": "uplink-a"
           }
         ]
@@ -2639,7 +2639,7 @@
               "if_index": 1,
               "last_seen": "2026-06-23T12:00:00Z",
               "link": "mac:02:00:00:00:02:01,02:dd:ce:cc:45:64,02:dd:ce:cc:4a:7d -\u003e mac:02:00:00:00:02:02,02:dd:c9:e4:b5:2c | stp | stp | \u003cnil\u003e | uplink-a | uplink-b",
-              "port_id": "uplink-a",
+              "port_id": "1",
               "port_name": "uplink-a",
               "protocol": "stp",
               "remote_actor": "mac:02:00:00:00:02:02,02:dd:c9:e4:b5:2c",
@@ -2676,7 +2676,7 @@
               "protocol": "stp",
               "remote_actor": "mac:02:00:00:00:02:01,02:dd:ce:cc:45:64,02:dd:ce:cc:4a:7d",
               "remote_if_index": 1,
-              "remote_port_id": "uplink-a",
+              "remote_port_id": "1",
               "remote_port_name": "uplink-a",
               "type": "stp"
             }
