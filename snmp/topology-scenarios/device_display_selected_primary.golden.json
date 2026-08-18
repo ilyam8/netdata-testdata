@@ -434,7 +434,7 @@
     "links_total": 1,
     "links_unidirectional": 0,
     "managed_snmp_device_focus": "all_devices",
-    "map_type": "lldp_cdp_managed",
+    "map_type": "managed_fabric",
     "ospf_adjacency_emitted_links": 0,
     "ospf_adjacency_suppressed_duplicate_link": 0,
     "ospf_adjacency_suppressed_non_full_state": 0,
