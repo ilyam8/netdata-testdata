@@ -544,6 +544,47 @@
         ]
       },
       "type": "ospf_adjacency"
+    },
+    "stp": {
+      "table": {
+        "columns": [
+          "link:link_ref:role=reference",
+          "src_actor:actor_ref:role=reference",
+          "dst_actor:actor_ref:role=reference",
+          "protocol:string_ref:dict=strings:role=group_key",
+          "direction:string_ref:dict=strings:role=group_key",
+          "state:string_ref:dict=strings:nullable",
+          "src_port_name:string_ref:dict=strings:nullable",
+          "dst_port_name:string_ref:dict=strings:nullable",
+          "src_if_index:uint:nullable",
+          "dst_if_index:uint:nullable",
+          "src_port_id:string_ref:dict=strings:nullable",
+          "dst_port_id:string_ref:dict=strings:nullable",
+          "src_management_ip:string_ref:dict=strings:nullable",
+          "dst_management_ip:string_ref:dict=strings:nullable",
+          "confidence:string_ref:dict=strings:nullable",
+          "inference:string_ref:dict=strings:nullable",
+          "attachment_mode:string_ref:dict=strings:nullable"
+        ],
+        "rows": [
+          {
+            "direction": "unidirectional",
+            "dst_actor": "mac:02:00:00:00:02:02,02:dd:c9:e4:b5:2c",
+            "dst_if_index": 1,
+            "dst_management_ip": "192.0.2.12",
+            "dst_port_id": "8001",
+            "dst_port_name": "uplink-b",
+            "link": "mac:02:00:00:00:02:01,02:dd:ce:cc:45:64,02:dd:ce:cc:4a:7d -\u003e mac:02:00:00:00:02:02,02:dd:c9:e4:b5:2c | stp | stp | \u003cnil\u003e | uplink-a | uplink-b",
+            "protocol": "stp",
+            "src_actor": "mac:02:00:00:00:02:01,02:dd:ce:cc:45:64,02:dd:ce:cc:4a:7d",
+            "src_if_index": 1,
+            "src_management_ip": "192.0.2.11",
+            "src_port_id": "1",
+            "src_port_name": "uplink-a"
+          }
+        ]
+      },
+      "type": "stp"
     }
   },
   "links": {
@@ -639,6 +680,18 @@
         "src_actor": "mac:02:00:00:00:01:01,02:20:11:1c:54:5f,02:20:11:1c:56:12",
         "state": "full",
         "type": "ospf_adjacency"
+      },
+      {
+        "direction": "unidirectional",
+        "discovered_at": "2026-06-23T12:00:00Z",
+        "dst_actor": "mac:02:00:00:00:02:02,02:dd:c9:e4:b5:2c",
+        "dst_port_name": "uplink-b",
+        "evidence_count": 1,
+        "last_seen": "2026-06-23T12:00:00Z",
+        "protocol": "stp",
+        "src_actor": "mac:02:00:00:00:02:01,02:dd:ce:cc:45:64,02:dd:ce:cc:4a:7d",
+        "src_port_name": "uplink-a",
+        "type": "stp"
       }
     ]
   },
@@ -897,10 +950,10 @@
     "links_lldp": 1,
     "links_probable": 0,
     "links_stp": 2,
-    "links_total": 8,
-    "links_unidirectional": 2,
+    "links_total": 9,
+    "links_unidirectional": 1,
     "managed_snmp_device_focus": "all_devices",
-    "map_type": "lldp_cdp_managed",
+    "map_type": "managed_fabric",
     "ospf_adjacency_emitted_links": 1,
     "ospf_adjacency_suppressed_duplicate_link": 1,
     "ospf_adjacency_suppressed_non_full_state": 0,
@@ -2580,6 +2633,22 @@
               "type": "cdp"
             },
             {
+              "actor": "mac:02:00:00:00:02:01,02:dd:ce:cc:45:64,02:dd:ce:cc:4a:7d",
+              "discovered_at": "2026-06-23T12:00:00Z",
+              "evidence_count": 1,
+              "if_index": 1,
+              "last_seen": "2026-06-23T12:00:00Z",
+              "link": "mac:02:00:00:00:02:01,02:dd:ce:cc:45:64,02:dd:ce:cc:4a:7d -\u003e mac:02:00:00:00:02:02,02:dd:c9:e4:b5:2c | stp | stp | \u003cnil\u003e | uplink-a | uplink-b",
+              "port_id": "1",
+              "port_name": "uplink-a",
+              "protocol": "stp",
+              "remote_actor": "mac:02:00:00:00:02:02,02:dd:c9:e4:b5:2c",
+              "remote_if_index": 1,
+              "remote_port_id": "8001",
+              "remote_port_name": "uplink-b",
+              "type": "stp"
+            },
+            {
               "actor": "mac:02:00:00:00:02:02,02:dd:c9:e4:b5:2c",
               "discovered_at": "2026-06-23T12:00:00Z",
               "evidence_count": 1,
@@ -2594,6 +2663,22 @@
               "remote_port_id": "uplink-a",
               "remote_port_name": "uplink-a",
               "type": "cdp"
+            },
+            {
+              "actor": "mac:02:00:00:00:02:02,02:dd:c9:e4:b5:2c",
+              "discovered_at": "2026-06-23T12:00:00Z",
+              "evidence_count": 1,
+              "if_index": 1,
+              "last_seen": "2026-06-23T12:00:00Z",
+              "link": "mac:02:00:00:00:02:01,02:dd:ce:cc:45:64,02:dd:ce:cc:4a:7d -\u003e mac:02:00:00:00:02:02,02:dd:c9:e4:b5:2c | stp | stp | \u003cnil\u003e | uplink-a | uplink-b",
+              "port_id": "8001",
+              "port_name": "uplink-b",
+              "protocol": "stp",
+              "remote_actor": "mac:02:00:00:00:02:01,02:dd:ce:cc:45:64,02:dd:ce:cc:4a:7d",
+              "remote_if_index": 1,
+              "remote_port_id": "1",
+              "remote_port_name": "uplink-a",
+              "type": "stp"
             }
           ]
         },
@@ -2741,7 +2826,7 @@
               "if_descr": "uplink-a",
               "if_index": 1,
               "if_name": "uplink-a",
-              "link_count": 4,
+              "link_count": 3,
               "link_mode": "unknown",
               "link_mode_confidence": "low",
               "link_mode_sources": [
@@ -2787,7 +2872,7 @@
               "if_descr": "uplink-b",
               "if_index": 1,
               "if_name": "uplink-b",
-              "link_count": 3,
+              "link_count": 2,
               "link_mode": "unknown",
               "link_mode_confidence": "low",
               "link_mode_sources": [
